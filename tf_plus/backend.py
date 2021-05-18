@@ -24,9 +24,9 @@ def learning_phase():
     # Returns
         Learning phase (scalar integer tensor or Python integer).
     """
-    graph = tf.get_default_graph()
+    graph = tf.compat.v1.get_default_graph()
     if graph not in _GRAPH_LEARNING_PHASES:
-        phase = tf.placeholder(dtype='bool',
+        phase = tf.compat.v1.placeholder(dtype='bool',
                                name='tf_plus_learning_phase')
         _GRAPH_LEARNING_PHASES[graph] = phase
     return _GRAPH_LEARNING_PHASES[graph]
@@ -41,9 +41,9 @@ def batchnorm_learning_phase():
     # Returns
         Learning phase (scalar integer tensor or Python integer).
     """
-    graph = tf.get_default_graph()
+    graph = tf.compat.v1.get_default_graph()
     if graph not in _GRAPH_BN_LEARNING_PHASES:
-        phase = tf.placeholder(dtype='bool',
+        phase = tf.compat.v1.placeholder(dtype='bool',
                                name='tf_plus_learning_phase')
         _GRAPH_BN_LEARNING_PHASES[graph] = phase
     return _GRAPH_BN_LEARNING_PHASES[graph]

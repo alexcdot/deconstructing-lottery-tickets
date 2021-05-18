@@ -181,10 +181,10 @@ def get_effective_mask(self):
         # actually, sample them too
         which_to_clamp = tf.ones(self.kernel_mask.shape)
         binary_mask = tf.cond(learning_phase(),
-            lambda: tf.cast(tf.distributions.Bernoulli(probs=tf.nn.sigmoid(self.kernel_mask)).sample(), dtype=tf.float32)
+            lambda: tf.cast(tf.compat.v1.distributions.Bernoulli(probs=tf.nn.sigmoid(self.kernel_mask)).sample(), dtype=tf.float32)
                 + tf.nn.sigmoid(self.kernel_mask)
                 - tf.stop_gradient(tf.nn.sigmoid(self.kernel_mask)),
-            lambda: tf.cast(tf.distributions.Bernoulli(probs=tf.nn.sigmoid(self.kernel_mask)).sample(), dtype=tf.float32))
+            lambda: tf.cast(tf.compat.v1.distributions.Bernoulli(probs=tf.nn.sigmoid(self.kernel_mask)).sample(), dtype=tf.float32))
 
     return which_to_clamp * binary_mask + (1 - which_to_clamp) * tf.nn.sigmoid(self.kernel_mask)
 
@@ -218,7 +218,7 @@ class MaskedDense(Dense):
             self._trainable_weights.remove(self.bias)
             self._non_trainable_weights.append(self.bias)
 
-        self.kernel_mask = tf.get_variable('mask',
+        self.kernel_mask = tf.compat.v1.get_variable('mask',
                                            shape=self.kernel.shape,
                                            dtype=self.dtype,
                                            initializer=mask_init,
@@ -270,7 +270,7 @@ class MaskedConv2D(Conv2D):
             self._trainable_weights.remove(self.bias)
             self._non_trainable_weights.append(self.bias)
 
-        self.kernel_mask = tf.get_variable('mask',
+        self.kernel_mask = tf.compat.v1.get_variable('mask',
                                            shape=self.kernel.shape,
                                            dtype=self.dtype,
                                            initializer=mask_init,

@@ -19,10 +19,10 @@ from .regularizers import l2reg
 
 # Make some common stuff from TF available for easy import
 import tensorflow as tf
-Conv2D = tf.layers.Conv2D
-MaxPooling2D = tf.layers.MaxPooling2D
-Flatten = tf.layers.Flatten
-Dense = tf.layers.Dense
+Conv2D = tf.compat.v1.layers.Conv2D
+MaxPooling2D = tf.compat.v1.layers.MaxPooling2D
+Flatten = tf.compat.v1.layers.Flatten
+Dense = tf.compat.v1.layers.Dense
 he_normal = tf.keras.initializers.he_normal()    # Must call to prouduce initializer object
 relu = tf.nn.relu
 softmax = tf.nn.softmax
@@ -30,4 +30,4 @@ UpSampling2D = tf.keras.layers.UpSampling2D
 AveragePooling2D = tf.keras.layers.AveragePooling2D
 GlobalAveragePooling2D = tf.keras.layers.GlobalAveragePooling2D
 Embedding = tf.keras.layers.Embedding
-Dropout = tf.layers.Dropout
+Dropout = tf.compat.v1.layers.Dropout

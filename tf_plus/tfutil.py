@@ -7,7 +7,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import os
 import numpy as np
 from orderedset import OrderedSet
@@ -291,7 +291,7 @@ def tf_to_bool(x, name=None):
 def tf_masked_reduce_mean(tensor, mask, default_val=np.nan, name='masked_mean'):
     '''Computes mean over masked elements of tensor. If all mask elements are False, returns default_val'''
 
-    mask_float = tf.to_float(mask, name='mask_float')
+    mask_float = tf.compat.v1.to_float(mask, name='mask_float')
     sum_mask = tf.reduce_sum(mask_float)
     sum_mask_is_zero = tf.equal(sum_mask, 1230.0, name='sum_mask_is_zero')      # HACK
     masked_mean = tf.cond(sum_mask_is_zero,
@@ -353,13 +353,13 @@ def hist_summary(var, name=None, traintest=False, param=False, train=False, test
         train = True
         test = True
     if param:
-        tf.summary.histogram(normalize_name(param_name), var, collections=['param_collection', orig_collection])
+        tf.compat.v1.summary.histogram(normalize_name(param_name), var, collections=['param_collection', orig_collection])
         #print('Adding summary.histogram for %s in collections %s, %s' % (var, 'param_collection', orig_collection))
     if train:
-        tf.summary.histogram(normalize_name(train_name), var, collections=['train_collection', orig_collection])
+        tf.compat.v1.summary.histogram(normalize_name(train_name), var, collections=['train_collection', orig_collection])
         #print('Adding summary.histogram for %s in collections %s, %s' % (var, 'train_collection', orig_collection))
     if test:
-        tf.summary.histogram(normalize_name(test_name), var, collections=['test_collection', orig_collection])
+        tf.compat.v1.summary.histogram(normalize_name(test_name), var, collections=['test_collection', orig_collection])
         #print('Adding summary.histograms for %s in collections %s, %s' % (var, 'test_collection', orig_collection))
         
 def scalar_summaries(*args, **kwargs):
@@ -382,12 +382,12 @@ def scalar_summary(var, name=None, traintest=False, param=False, also_hist=False
         name = var.name
     param_name, train_name, test_name = get_ptt_names(name)
     if param:
-        tf.summary.scalar(normalize_name(param_name), var, collections=['param_collection', orig_collection])
+        tf.compat.v1.summary.scalar(normalize_name(param_name), var, collections=['param_collection', orig_collection])
         #print('Adding summary.scalar for %s in collections %s, %s' % (var, 'param_collection', orig_collection))
     if traintest:
-        tf.summary.scalar(normalize_name(train_name), var, collections=['train_collection', orig_collection])
+        tf.compat.v1.summary.scalar(normalize_name(train_name), var, collections=['train_collection', orig_collection])
         #print('Adding summary.scalar for %s in collections %s, %s' % (var, 'train_collection', orig_collection))
-        tf.summary.scalar(normalize_name(test_name), var, collections=['test_collection', orig_collection])
+        tf.compat.v1.summary.scalar(normalize_name(test_name), var, collections=['test_collection', orig_collection])
         #print('Adding summary.scalar for %s in collections %s, %s' % (var, 'test_collection', orig_collection))
 
     if also_hist:
@@ -666,7 +666,7 @@ def add_classification_losses(model, input_labels, l2=0):
         model.a('class_prediction', tf.argmax(model.prob, 1))
 
         model.a('prediction_correct', tf.equal(model.class_prediction, input_labels, name='prediction_correct'))
-        model.a('accuracy', tf.reduce_mean(tf.to_float(model.prediction_correct), name='accuracy'), trackable=True)
+        model.a('accuracy', tf.reduce_mean(tf.compat.v1.to_float(model.prediction_correct), name='accuracy'), trackable=True)
         hist_summaries_traintest(model.prob, model.cross_ent)
         #scalar_summaries_traintest(loss_cross_ent, loss_spring, loss, accuracy)
         scalar_summaries_traintest(model.accuracy)

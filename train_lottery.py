@@ -104,8 +104,8 @@ def sigmoid(x):
 
 def init_model(model, input_dim):
     img_size = tuple([None] + [int(dim) for dim in input_dim.split(',')])
-    input_images = tf.placeholder(dtype='float32', shape=img_size)
-    input_labels = tf.placeholder(dtype='int64', shape=(None,))
+    input_images = tf.compat.v1.placeholder(dtype='float32', shape=img_size)
+    input_labels = tf.compat.v1.placeholder(dtype='int64', shape=(None,))
     #adding things to trackable
     model.a('input_images', input_images)
     model.a('input_labels', input_labels)
@@ -113,7 +113,7 @@ def init_model(model, input_dim):
 
 def define_training(model, args):
     # define optimizer
-    input_lr = tf.placeholder(tf.float32, shape=[]) # placeholder for dynamic learning rate
+    input_lr = tf.compat.v1.placeholder(tf.float32, shape=[]) # placeholder for dynamic learning rate
     model.a('input_lr', input_lr)
     if args.opt == 'sgd':
         optimizer = tf.train.MomentumOptimizer(input_lr, args.mom)
@@ -189,7 +189,7 @@ def eval_on_entire_dataset(sess, model, input_x, input_y, dim_sum, batch_size, t
 
     # tensorboard
     if tb_writer:
-        summary = tf.Summary()
+        summary = tf.compat.v1.Summary()
         summary.value.add(tag='%s_acc' % tb_prefix, simple_value=acc)
         summary.value.add(tag='%s_loss' % tb_prefix, simple_value=loss)
         summary.value.add(tag='%s_loss_no_reg' % tb_prefix, simple_value=loss_no_reg)
@@ -212,7 +212,7 @@ def train_and_eval(sess, model, train_x, train_y, val_x, val_y, test_x, test_y, 
     decay_count = 0
 
     # initializations
-    tb_summaries = tf.summary.merge(tf.get_collection('train_step'))
+    tb_summaries = tf.compat.v1.summary.merge(tf.compat.v1.get_collection('train_step'))
 
     shuffled_indices = np.arange(train_y.shape[0]) # for no shuffling
     iterations = 0
@@ -503,7 +503,7 @@ def main():
     define_training(model, args)
 
     sess = tf.InteractiveSession()
-    sess.run(tf.global_variables_initializer())
+    sess.run(tf.compat.v1.global_variables_initializer())
     
     if args.exp == 'none':
         for i, w in enumerate(model.trainable_weights):
@@ -689,13 +689,13 @@ def main():
 
 
     for collection in ['train_step']: # 'eval_train' and 'eval_test' added manually later
-        tf.summary.scalar(collection + '_acc', model.accuracy, collections=[collection])
-        tf.summary.scalar(collection + '_loss', model.loss, collections=[collection])
+        tf.compat.v1.summary.scalar(collection + '_acc', model.accuracy, collections=[collection])
+        tf.compat.v1.summary.scalar(collection + '_loss', model.loss, collections=[collection])
 
     tb_writer, hf = None, None
     dsets = {}
     if args.output_dir:
-        tb_writer = tf.summary.FileWriter(args.output_dir, sess.graph)
+        tb_writer = tf.compat.v1.summary.FileWriter(args.output_dir, sess.graph)
     
         # set up output for gradients/weights
         if args.save_weights:

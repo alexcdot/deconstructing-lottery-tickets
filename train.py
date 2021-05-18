@@ -11,6 +11,8 @@ from __future__ import print_function
 from __future__ import division
 
 import tensorflow as tf
+# tf.disable_v2_behavior()
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 import time
 import h5py
@@ -72,8 +74,8 @@ def read_input_data(filename):
 
 def init_model(model, input_dim):
     img_size = tuple([None] + [int(dim) for dim in input_dim.split(',')])
-    input_images = tf.placeholder(dtype='float32', shape=img_size)
-    input_labels = tf.placeholder(dtype='int64', shape=(None,))
+    input_images = tf.compat.v1.placeholder(dtype='float32', shape=img_size)
+    input_labels = tf.compat.v1.placeholder(dtype='int64', shape=(None,))
     #adding things to trackable
     model.a('input_images', input_images)
     model.a('input_labels', input_labels)
@@ -81,21 +83,21 @@ def init_model(model, input_dim):
 
 def define_training(model, args):
     # define optimizer
-    input_lr = tf.placeholder(tf.float32, shape=[]) # placeholder for dynamic learning rate
+    input_lr = tf.compat.v1.placeholder(tf.float32, shape=[]) # placeholder for dynamic learning rate
     model.a('input_lr', input_lr)
     if args.opt == 'sgd':
-        optimizer = tf.train.MomentumOptimizer(input_lr, args.mom)
+        optimizer = tf.compat.v1.train.MomentumOptimizer(input_lr, args.mom)
     elif args.opt == 'rmsprop':
-        optimizer = tf.train.RMSPropOptimizer(input_lr, momentum=args.mom)
+        optimizer = tf.compat.v1.train.RMSPropOptimizer(input_lr, momentum=args.mom)
     elif args.opt == 'adam':
-        optimizer = tf.train.AdamOptimizer(input_lr)
+        optimizer = tf.compat.v1.train.AdamOptimizer(input_lr)
     model.a('optimizer', optimizer)
 
     # This adds prob, cross_ent, loss_cross_ent, class_prediction, 
     # prediction_correct, accuracy, loss, (loss_reg) in tf_nets/losses.py
     add_classification_losses(model, model.input_labels)
     
-    grads_and_vars = optimizer.compute_gradients(model.loss, model.trainable_weights, gate_gradients=tf.train.Optimizer.GATE_GRAPH)
+    grads_and_vars = optimizer.compute_gradients(model.loss, model.trainable_weights, gate_gradients=tf.compat.v1.train.Optimizer.GATE_GRAPH)
     model.a('grads_to_compute', [grad for grad, _ in grads_and_vars])
     model.a('train_step', optimizer.apply_gradients(grads_and_vars))
 
@@ -147,7 +149,7 @@ def eval_on_entire_dataset(sess, model, input_x, input_y, dim_sum, batch_size, t
 
     # tensorboard
     if tb_writer:
-        summary = tf.Summary()
+        summary = tf.compat.v1.Summary()
         summary.value.add(tag='%s_acc' % tb_prefix, simple_value=acc)
         summary.value.add(tag='%s_loss' % tb_prefix, simple_value=loss)
         summary.value.add(tag='%s_loss_no_reg' % tb_prefix, simple_value=loss_no_reg)
@@ -170,7 +172,7 @@ def train_and_eval(sess, model, snip_batch_size, train_x, train_y, val_x, val_y,
     decay_count = 0
 
     # initializations
-    tb_summaries = tf.summary.merge(tf.get_collection('train_step'))
+    tb_summaries = tf.compat.v1.summary.merge(tf.compat.v1.get_collection('train_step'))
 
     shuffled_indices = np.arange(train_y.shape[0]) # for no shuffling
     iterations = 0
@@ -309,7 +311,7 @@ def main():
     parser = make_parser()
     args = parser.parse_args()
     np.random.seed(args.seed)
-    tf.set_random_seed(args.seed)
+    tf.compat.v1.set_random_seed(args.seed)
     
 #     load data
     train_x, train_y = read_input_data(args.train_h5)
@@ -359,17 +361,17 @@ def main():
     init_model(model, input_dim)
     define_training(model, args)
 
-    sess = tf.InteractiveSession()
-    sess.run(tf.global_variables_initializer())
+    sess = tf.compat.v1.InteractiveSession()
+    sess.run(tf.compat.v1.global_variables_initializer())
 
     for collection in ['train_step']: # 'eval_train' and 'eval_test' added manually later
-        tf.summary.scalar(collection + '_acc', model.accuracy, collections=[collection])
-        tf.summary.scalar(collection + '_loss', model.loss, collections=[collection])
+        tf.compat.v1.summary.scalar(collection + '_acc', model.accuracy, collections=[collection])
+        tf.compat.v1.summary.scalar(collection + '_loss', model.loss, collections=[collection])
 
     tb_writer, hf = None, None
     dsets = {}
     if args.output_dir:
-        tb_writer = tf.summary.FileWriter(args.output_dir, sess.graph)
+        tb_writer = tf.compat.v1.summary.FileWriter(args.output_dir, sess.graph)
     
         # set up output for gradients/weights
         if args.save_weights:

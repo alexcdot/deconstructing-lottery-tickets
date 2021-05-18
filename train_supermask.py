@@ -11,7 +11,12 @@ from __future__ import print_function
 from __future__ import division
 
 from ast import literal_eval
+# import tensorflow as tf
+
 import tensorflow as tf
+tf.disable_v2_behavior()
+tf.compat.v1.disable_eager_execution()
+
 import numpy as np
 import time
 import h5py
@@ -78,8 +83,8 @@ def read_input_data(filename):
 
 def init_model(model, args):
     img_size = tuple([None] + [int(dim) for dim in args.input_dim.split(',')])
-    input_images = tf.placeholder(dtype='float32', shape=img_size)
-    input_labels = tf.placeholder(dtype='int64', shape=(None,))
+    input_images = tf.compat.v1.placeholder(dtype='float32', shape=img_size)
+    input_labels = tf.compat.v1.placeholder(dtype='int64', shape=(None,))
     model.a('input_images', input_images)
     model.a('input_labels', input_labels)
     model.a('logits', model(input_images)) # logits is y_pred
@@ -87,7 +92,7 @@ def init_model(model, args):
 
 def define_training(model, args):
     # define optimizer
-    input_lr = tf.placeholder(tf.float32, shape=[]) # placeholder for dynamic learning rate
+    input_lr = tf.compat.v1.placeholder(tf.float32, shape=[]) # compat.v1.placeholder for dynamic learning rate
     model.a('input_lr', input_lr)
     if args.opt == 'sgd':
         optimizer = tf.train.MomentumOptimizer(input_lr, args.mom)
