@@ -11,6 +11,9 @@ from __future__ import print_function
 from __future__ import division
 
 import tensorflow as tf
+
+tf.compat.v1.disable_eager_execution()
+
 import numpy as np
 import time
 import h5py
@@ -116,18 +119,18 @@ def define_training(model, args):
     input_lr = tf.compat.v1.placeholder(tf.float32, shape=[]) # placeholder for dynamic learning rate
     model.a('input_lr', input_lr)
     if args.opt == 'sgd':
-        optimizer = tf.train.MomentumOptimizer(input_lr, args.mom)
+        optimizer = tf.compat.v1.train.MomentumOptimizer(input_lr, args.mom)
     elif args.opt == 'rmsprop':
-        optimizer = tf.train.RMSPropOptimizer(input_lr, momentum=args.mom)
+        optimizer = tf.compat.v1.train.RMSPropOptimizer(input_lr, momentum=args.mom)
     elif args.opt == 'adam':
-        optimizer = tf.train.AdamOptimizer(input_lr)
+        optimizer = tf.compat.v1.train.AdamOptimizer(input_lr)
     model.a('optimizer', optimizer)
 
     # This adds prob, cross_ent, loss_cross_ent, class_prediction, 
     # prediction_correct, accuracy, loss, (loss_reg) in tf_nets/losses.py
     add_classification_losses(model, model.input_labels)
     
-    grads_and_vars = optimizer.compute_gradients(model.loss, model.trainable_weights, gate_gradients=tf.train.Optimizer.GATE_GRAPH)
+    grads_and_vars = optimizer.compute_gradients(model.loss, model.trainable_weights, gate_gradients=tf.compat.v1.train.Optimizer.GATE_GRAPH)
     model.a('grads_to_compute', [grad for grad, _ in grads_and_vars])
     model.a('train_step', optimizer.apply_gradients(grads_and_vars))
 
@@ -502,7 +505,7 @@ def main():
     init_model(model, input_dim)
     define_training(model, args)
 
-    sess = tf.InteractiveSession()
+    sess = tf.compat.v1.InteractiveSession()
     sess.run(tf.compat.v1.global_variables_initializer())
     
     if args.exp == 'none':
