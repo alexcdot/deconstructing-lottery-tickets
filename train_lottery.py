@@ -336,7 +336,7 @@ def main():
     parser = make_parser()
     args = parser.parse_args()
     np.random.seed(args.seed)
-    tf.set_random_seed(args.seed)
+    tf.random.set_seed(args.seed)
     
     #calculate mask data
     if not args.skip_calc_mask:
