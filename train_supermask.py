@@ -13,7 +13,7 @@ from __future__ import division
 from ast import literal_eval
 # import tensorflow as tf
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 tf.compat.v1.disable_eager_execution()
 
@@ -133,10 +133,30 @@ def load_initial_weights(sess, model, args):
     hf_weights.close()
 
     weight_values = split_and_shape(init_weights_flat, shapes)
+
+    print(len(weight_values))
+    print([v.shape for v in weight_values])
+
+    print(len(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)))
+    print([gk.shape for gk in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)])
+
+    # weight_values only includes weight matrices, not biases
+    # import ipdb
+    # ipdb.set_trace()
+
+    # import ipdb
+    # with ipdb.launch_ipdb_on_exception():
+    j = 0
     for i, w in enumerate(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)):
-       #if 'mask' not in w.name: # HACK for biased masks
+    #if 'mask' not in w.name: # HACK for biased masks
+        print(w)
+        # Skip the mask layers, since the fc_lot model doesn't have them
+        if 'mask' in w.name:
+            continue
         print('loading weights for layer {}: {}'.format(i, w.name))
-        w.load(weight_values[i], session=sess)
+        # assert(weight_values[j].sum() != 0)
+        w.load(weight_values[j], session=sess)
+        j += 1
     return 
 
 

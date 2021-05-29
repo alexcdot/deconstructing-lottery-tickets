@@ -13,6 +13,7 @@ network=$2
 orig_dir_name=$3
 seed=$4
 execute=$5
+trials_num_epochs=$6
 
 case "$network" in
         fc)
@@ -23,7 +24,7 @@ case "$network" in
                         one)
                                 filedir=lot_fc_orig
                 esac
-                num_epochs=55
+                num_epochs=$trials_num_epochs
                 arch=fc_lot
                 lr=0.0012
                 data=mnist
@@ -83,8 +84,8 @@ esac
 
 case "$execute" in
     t)
-        resman -d "./results/${filedir}/" -r "${orig_dir_name}_seed_${seed}" -t "{runname}" -- python train.py --train_h5 "./data/${data}_train.h5" --test_h5 "./data/${data}_test.h5" --val_h5 "./data/${data}_val.h5" --train_batch_size 60 --num_epochs $num_epochs --eval_every 100 --print_every 100 --save_weights --save_loss --arch $arch --seed $seed --opt adam --lr $lr --mode save_all --large_batch_size $large_batch_size --test_batch_size $small_batch_size --val_batch_size $small_batch_size
+        resman -d "./results/${filedir}/" -r "${orig_dir_name}_seed_${seed}" -t "{runname}" -- python train.py --train_h5 "./data/${data}_train.h5" --test_h5 "./data/${data}_test.h5" --val_h5 "./data/${data}_val.h5" --train_batch_size 60 --num_epochs $trials_num_epochs --eval_every 100 --print_every 100 --save_weights --save_loss --arch $arch --seed $seed --opt adam --lr $lr --mode save_all --large_batch_size $large_batch_size --test_batch_size $small_batch_size --val_batch_size $small_batch_size
         ;;
     *)
-        echo resman -d "./results/${filedir}/" -r "${orig_dir_name}_seed_${seed}" -t "{runname}" -- python train.py --train_h5 "./data/${data}_train.h5" --test_h5 "./data/${data}_test.h5" --val_h5 "./data/${data}_val.h5" --train_batch_size 60 --num_epochs $num_epochs --eval_every 100 --print_every 100 --save_weights --save_loss --arch $arch --seed $seed --opt adam --lr $lr --mode save_all --large_batch_size $large_batch_size --test_batch_size $small_batch_size --val_batch_size $small_batch_size
+        echo resman -d "./results/${filedir}/" -r "${orig_dir_name}_seed_${seed}" -t "{runname}" -- python train.py --train_h5 "./data/${data}_train.h5" --test_h5 "./data/${data}_test.h5" --val_h5 "./data/${data}_val.h5" --train_batch_size 60 --num_epochs $trials_num_epochs --eval_every 100 --print_every 100 --save_weights --save_loss --arch $arch --seed $seed --opt adam --lr $lr --mode save_all --large_batch_size $large_batch_size --test_batch_size $small_batch_size --val_batch_size $small_batch_size
 esac

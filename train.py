@@ -22,6 +22,7 @@ import sys
 from math import ceil
 
 import network_builders
+import masked_networks
 from tf_plus import Conv2D, MaxPooling2D, Flatten, Dense, relu, Activation
 from tf_plus import Layers, SequentialNetwork, l2reg
 from tf_plus import learning_phase, batchnorm_learning_phase
@@ -38,7 +39,7 @@ def make_parser():
     parser.add_argument('--save_weights', action='store_true', help='save gradients and weights to file')
     parser.add_argument('--save_loss', action='store_true', help='save loss and accuracy to file')
     parser.add_argument('--input_dim', type=str, default='28,28,1', help='mnist: 28,28,1; cifar: 32,32,3')
-    parser.add_argument('--arch', type=str, default='fc_lot', choices=('fc_lot', 'conv2_lot', 'conv4_lot', 'conv6_lot'), help='network architecture')
+    parser.add_argument('--arch', type=str, default='fc_mask', choices=('fc_lot', 'conv2_lot', 'conv4_lot', 'conv6_lot', 'fc_mask'), help='network architecture')
 
     #optimization params
     parser.add_argument('--opt', type=str, default='sgd', choices=('sgd', 'rmsprop', 'adam'))
@@ -61,6 +62,11 @@ def make_parser():
     parser.add_argument('--log_every', type=int, default=5, help='save tb batch acc/loss every n iterations')
 
     parser.add_argument('--mode', type = str, default = 'save_all', choices = ('save_all', 'save_res'))
+    parser.add_argument('--signed_constant', action='store_true', help='make network weights signed constant')
+    parser.add_argument('--sigmoid_bias', type=float, default=0, help='rounding bias (masks initialized with this)')
+    parser.add_argument('--round_mask', action='store_true', help='round masks instead of bernoulli sample')
+    parser.add_argument('--signed_constant_multiplier', type=float, default=1.0, help='Value of multiplier to the default as signed constant (std of each layer init)')
+    parser.add_argument('--dynamic_scaling', action='store_true', help='dynamically determine singed constant multiplier based on percentage of masked weights')
     return parser
 
 def read_input_data(filename):
@@ -351,6 +357,8 @@ def main():
     # build model 
     if args.arch == 'fc_lot':
         model = network_builders.build_fc_lottery(args)
+    elif args.arch == 'fc_mask':
+        model = masked_networks.build_fc_supermask(args)
     elif args.arch == 'conv2_lot':
         model = network_builders.build_conv2_lottery(args)
     elif args.arch == 'conv4_lot':
