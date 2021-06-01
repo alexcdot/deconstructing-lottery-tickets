@@ -33,6 +33,7 @@ from train_supermask import make_parser, read_input_data,     init_model, load_i
 
 metaparser = argparse.ArgumentParser()
 metaparser.add_argument('--experiment_name', type=str, required=True)
+metaparser.add_argument('--pretrained_epochs', type=int, required=True)
 meta_args = metaparser.parse_args()
 
 
@@ -42,7 +43,7 @@ meta_args = metaparser.parse_args()
 def build_input_dir(seed, meta_args):
     attempt_num = 0
     experiment_name = meta_args.experiment_name
-    pretrained_epochs = None
+    pretrained_epochs = meta_args.pretrained_epochs
 
     if experiment_name == "control_3":
         input_dir = "./results/iter_lot_fc_orig/learned_supermasks_seed_{seed}_attempt_{attempt_num}/run1".format(
@@ -50,7 +51,7 @@ def build_input_dir(seed, meta_args):
             attempt_num=attempt_num)
 
     elif experiment_name == "pretrained_supermask":
-        input_dir = "./results/iter_lot_fc_orig/fc_lot_${pretrained_epochs}_epochs_seed_${seed}_${attempt_num}/run1".format(
+        input_dir = "./results/iter_lot_fc_orig/learned_supermasks_pre_trained_{pretrained_epochs}_epochs_seed_{seed}_{attempt_num}/run1".format(
             pretrained_epochs=pretrained_epochs,
             seed=seed,
             attempt_num=attempt_num)
@@ -123,9 +124,8 @@ def visualize_mask_weights(mask_layers, seed):
         plt.hist(sigmoid(mask_layer.flatten()), bins=num_bins)
         plt.xlabel("Sigmoided mask values at layer {}".format(i))
     plt.tight_layout()
-    plt.savefig(os.path.join(args.init_weights_h5,
-        "mask_dists_seed_{}.png".format(seed)))
-    plt.show()
+    plt.savefig(os.path.join('results/iter_lot_fc_orig/figs',
+        "mask_dists_epochs_{}_seed_{}.png".format(meta_args.pretrained_epochs, seed)))
     
 def get_test_accs(run_dir):
     test_accs = []
@@ -146,7 +146,7 @@ def get_test_accs(run_dir):
 def run_analysis_on_seed(seed, meta_args):
     seed_info = {
         "seed": seed,
-        "regular_epochs": 0,
+        "regular_epochs": meta_args.pretrained_epochs,
         "supermask_epochs": 500,
         "experiment_name": meta_args.experiment_name,
         "has_supermask": 1,
@@ -222,4 +222,4 @@ df
 # In[231]:
 
 
-df.to_csv('results/iter_lot_fc_orig/results_summary_{}.csv'.format(meta_args.experiment_name))
+df.to_csv('results/iter_lot_fc_orig/results_summary_{}_{}.csv'.format(meta_args.experiment_name, meta_args.pretrained_epochs))
