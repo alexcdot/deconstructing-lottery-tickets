@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[216]:
+# In[1]:
 
 
 from __future__ import print_function
@@ -20,6 +20,7 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import pandas as pd
+import networkx as nx
 
 import masked_networks
 from tf_plus import learning_phase, batchnorm_learning_phase
@@ -28,16 +29,17 @@ from tf_plus import summarize_weights
 from train_supermask import make_parser, read_input_data,     init_model, load_initial_weights, split_and_shape
 
 
-# In[222]:
+# In[2]:
 
 
 metaparser = argparse.ArgumentParser()
 metaparser.add_argument('--experiment_name', type=str, required=True)
 metaparser.add_argument('--pretrained_epochs', type=int, required=True)
 meta_args = metaparser.parse_args()
+# meta_args = metaparser.parse_args(["--experiment_name", "control_3", "--pretrained_epochs", "0"])
 
 
-# In[224]:
+# In[4]:
 
 
 def build_input_dir(seed, meta_args):
@@ -72,7 +74,7 @@ args_str = """--train_h5 ./data/mnist_train.h5 --test_h5 ./data/mnist_test.h5
 args = parser.parse_args(args_str)
 
 
-# In[3]:
+# In[5]:
 
 
 train_x, train_y = read_input_data(args.train_h5)
@@ -107,7 +109,7 @@ sess = tf.compat.v1.InteractiveSession()
 sess.run(tf.compat.v1.global_variables_initializer())
 
 
-# In[215]:
+# In[6]:
 
 
 def sigmoid(x):
@@ -124,6 +126,8 @@ def visualize_mask_weights(mask_layers, seed):
         plt.hist(sigmoid(mask_layer.flatten()), bins=num_bins)
         plt.xlabel("Sigmoided mask values at layer {}".format(i))
     plt.tight_layout()
+    if not os.path.exists('results/iter_lot_fc_orig/figs'):
+        os.mkdir('results/iter_lot_fc_orig/figs')
     plt.savefig(os.path.join('results/iter_lot_fc_orig/figs',
         "mask_dists_epochs_{}_seed_{}.png".format(meta_args.pretrained_epochs, seed)))
     
@@ -139,8 +143,12 @@ def get_test_accs(run_dir):
                         test_accs.append(v.simple_value)
     return np.array(test_accs)
 
+def ccdf(data):
+    s_data = np.sort(data)[::-1]
+    return np.stack([s_data, np.arange(s_data.shape[0]) + 1], axis=1)
 
-# In[225]:
+
+# In[9]:
 
 
 def run_analysis_on_seed(seed, meta_args):
@@ -181,7 +189,8 @@ def run_analysis_on_seed(seed, meta_args):
         print('loading weights for layer {}: {}'.format(i, w.name))
         w.load(weight_values[i], session=sess)
 
-
+    # Mask analysis    
+    
     mask_layers = final_weight_values[2::3]
     print("Basic info")
     all_mask_weights = []
@@ -192,16 +201,131 @@ def run_analysis_on_seed(seed, meta_args):
             mask_layer.min(), mask_layer.max()))
         all_mask_weights.append(mask_layer.flatten())
     all_mask_weights = np.concatenate(all_mask_weights)
-    print("Total average fraction masked:", 1-sigmoid(all_mask_weights).mean())
     
+    seed_info["fraction_supermasked"] = 1-sigmoid(all_mask_weights).mean()
+    print("Total average fraction masked:", seed_info["fraction_supermasked"])
+    
+    # Number of bernoulli samples. Not much difference between samples observed
+    n_bern = 3
+    sampled_infos = []
+
+    for i in range(n_bern):
+        DG = nx.DiGraph()
+        edges = []
+        nodes = set(["s", "t"])
+        masked_weights = []
+        sampled_info = {}
+        
+        for j, mask_layer in enumerate(mask_layers):
+            clamped_mask = np.random.binomial(1, sigmoid(mask_layer))
+            masked_weights.append(clamped_mask * final_weight_values[j * 3])
+            
+            # Don't do graph processing for first layer, too many edges
+            if j == 0:
+                continue
+            for row_ind, row in enumerate(clamped_mask):
+                for col_ind, val in enumerate(row):
+                    in_node = "{}_{}".format(j, row_ind)
+                    out_node = "{}_{}".format(j + 1, col_ind)
+                    nodes.add(in_node)
+                    nodes.add(out_node)
+                    
+                    if j == 1:
+                        edges.append(["s", in_node])
+                    elif j == len(mask_layers) - 1:
+                        edges.append([out_node, "t"])
+                    
+                    if val == 1:
+                        edge = [in_node, out_node]
+                        DG.add_edge(*edge, capacity=abs(val))
+        DG.add_nodes_from(nodes)
+        DG.add_edges_from(edges, weight=1, capacity=10e10)
+        all_masked_weights = np.concatenate([
+            masked_weight.flatten() for masked_weight in masked_weights
+        ])
+        # Just get weight matrices
+        all_init_weights = np.concatenate([
+            init_weight.flatten() for init_weight in weight_values[::3]
+        ])
+        
+        out_degree_dist = np.array([pair[1] for pair in DG.out_degree()])
+        in_degree_dist = np.array([pair[1] for pair in DG.in_degree()])
+        out_deg_ccdf = ccdf(out_degree_dist)
+        in_deg_ccdf = ccdf(in_degree_dist)
+        if i == 0:
+            plt.subplot(1, 2, 1)
+            plt.scatter(in_deg_ccdf[:, 1], in_deg_ccdf[:, 0], label='In degree')
+            plt.scatter(out_deg_ccdf[:, 1], out_deg_ccdf[:, 0], label='Out degree')
+            plt.xlabel("Rank")
+            plt.ylabel("Degree rank CCDF")
+            plt.legend()
+    #         plt.show()
+            plt.subplot(1, 2, 2)
+            plt.scatter(in_degree_dist, out_degree_dist)
+            plt.xlabel("In degree dist")
+            plt.ylabel("Out degree dist")
+            plt.tight_layout()
+            plt.savefig(os.path.join('results/iter_lot_fc_orig/figs',
+                "degree_dists_epochs_{}_seed_{}.png".format(meta_args.pretrained_epochs, seed)))
+            plt.show()
+
+        # Properties
+        G = nx.Graph(DG)
+        sampled_info["out_degree_mean"] = out_degree_dist.mean()
+        sampled_info["out_degree_std"] = out_degree_dist.std()
+#         print("Mean and std of out degree:", out_degree_dist.mean(),
+#                out_degree_dist.std())
+#         print("Average diameter:", nx.average_shortest_path_length(G)) # not meaningful
+#         print("Approx Connectivity:", nx.node_connectivity(G)) # usually 40-43
+        sampled_info["maximum_flow"] = nx.maximum_flow(G, "s", "t")[0]
+#         print("Maximum flow:", nx.maximum_flow(G, "s", "t")[0])
+
+        sampled_info["weights_mean"] = all_mask_weights.mean()
+        sampled_info["weights_std"] = all_mask_weights.std()
+#         print("Weights variance, absolute mean", all_mask_weights.std(),
+#               np.absolute(all_mask_weights).mean())
+        
+        # Best generalization bounds
+        d = len(masked_weights)  # number of layers
+        m = train_y.shape[0]  # length of the dataset
+        # pacbayes.orig, pacbayes.flatness, pacbayes.init
+        sigma = 1  # TODO: Not correct - need to calculate it
+        all_weights_dist = all_masked_weights - all_init_weights
+        def pacbayes_bound(vec):
+            return np.power(np.linalg.norm(vec), 2) / (4 * sigma ** 2) +                 np.log(m / sigma) + 10
+        sampled_info["pacbayes.orig"] = pacbayes_bound(all_masked_weights)
+        sampled_info["pacbayes.init"] = pacbayes_bound(all_weights_dist)
+        sampled_info["pacbayes.flatness"] = 1 / sigma ** 2
+#         print("pacbayes.orig", pacbayes_bound(all_masked_weights))
+#         print("pacbayes.init", pacbayes_bound(all_weights_dist))
+#         print("pacbayes.flatness", 1 / sigma ** 2)
+        # path.norm.over.margin
+        # path.norm
+        # fro.dist
+        dist_frob_norm = np.linalg.norm(all_weights_dist)
+        sampled_info["fro.dist"] = dist_frob_norm.sum()
+#         print("fro.dist", dist_frob_norm.sum())
+        # sum.of.fro
+        frob_norm = np.linalg.norm(all_masked_weights)
+        sampled_info["log.sum.of.fro"] = np.log(frob_norm).sum() / d + np.log(d)
+#         print("log.sum.of.fro", np.log(frob_norm).sum() / d + np.log(d))
+        sampled_infos.append(sampled_info)
+    for sampled_info in sampled_infos:
+        for key in sampled_info:
+            if key not in seed_info:
+                seed_info[key] = sampled_info[key] / n_bern
+            else:
+                seed_info[key] += sampled_info[key] / n_bern
     # Visualize and save img of mask weight distribution
     visualize_mask_weights(mask_layers, seed)
     
     seed_info["test_accuracy"] = get_test_accs(args.init_weights_h5).max()
+    for key in seed_info:
+        print(key, seed_info[key])
     return seed_info
 
 
-# In[226]:
+# In[11]:
 
 
 seed_infos = []
@@ -213,13 +337,15 @@ for seed in range(1, 11):
 df = pd.DataFrame(seed_infos)
 
 
-# In[220]:
+# In[12]:
 
 
 df
 
 
-# In[231]:
+# In[13]:
 
 
-df.to_csv('results/iter_lot_fc_orig/results_summary_{}_{}.csv'.format(meta_args.experiment_name, meta_args.pretrained_epochs))
+df.to_csv('results/iter_lot_fc_orig/results_summary_{}_{}.csv'.format(
+    meta_args.experiment_name, meta_args.pretrained_epochs))
+
