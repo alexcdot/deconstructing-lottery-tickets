@@ -310,7 +310,7 @@ def run_analysis_on_seed(seed, meta_args):
                 "degree_dists_exp_{}_epochs_{}_ckpt_{}_seed_{}.png".format(
             meta_args.experiment_name, meta_args.pretrained_epochs,
             meta_args.ckpt_idx, seed)))
-            plt.show()
+#             plt.show()
 
         # Properties
         G = nx.Graph(DG)
@@ -323,8 +323,9 @@ def run_analysis_on_seed(seed, meta_args):
         sampled_info["maximum_flow"] = nx.maximum_flow(G, "s", "t")[0]
     #         print("Maximum flow:", nx.maximum_flow(G, "s", "t")[0])
 
-        sampled_info["weights_mean"] = all_mask_weights.mean()
-        sampled_info["weights_std"] = all_mask_weights.std()
+        sampled_info["weights_mean"] = all_masked_weights.mean()
+        sampled_info["weights_std"] = all_masked_weights.std()
+        sampled_info["mask_std"] = all_mask_weights.std()
     #         print("Weights variance, absolute mean", all_mask_weights.std(),
     #               np.absolute(all_mask_weights).mean())
 
