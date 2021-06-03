@@ -240,8 +240,8 @@ def run_analysis_on_seed(seed, meta_args):
         all_mask_weights.append(mask_layer.flatten())
     all_mask_weights = np.concatenate(all_mask_weights)
 
-    seed_info["fraction_supermasked"] = 1-all_mask_weights.mean()
-    print("Total average fraction masked:", seed_info["fraction_supermasked"])
+    seed_info["fraction_masked"] = 1-all_mask_weights.mean()
+    print("Total average fraction masked:", seed_info["fraction_masked"])
 
     # Number of bernoulli samples. Not much difference between samples observed
     n_bern = 3
