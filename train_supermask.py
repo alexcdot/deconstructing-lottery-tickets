@@ -129,10 +129,11 @@ def load_initial_weights(sess, model, args):
         h5file = args.init_weights_h5
     hf_weights = h5py.File(h5file, 'r')
     init_weights_flat = hf_weights.get('all_weights')[0]
+    latest_weights_flat = hf_weights.get('all_weights')[-1]
     shapes = [literal_eval(s) for s in hf_weights.attrs['var_shapes'].decode('utf-8').split(';')]
     hf_weights.close()
 
-    weight_values = split_and_shape(init_weights_flat, shapes)
+    weight_values = split_and_shape(latest_weights_flat, shapes)
 
     print(len(weight_values))
     print([v.shape for v in weight_values])
